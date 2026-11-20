@@ -1,0 +1,1 @@
+export function stageScene(state){const shot=new URLSearchParams(location.search).get('shot');if(shot&&shot!=='editor'){document.body.classList.add('shot');state.size=shot==='portrait'?[1080,1350]:shot==='square'?[1080,1080]:[1920,1080]}return shot}
