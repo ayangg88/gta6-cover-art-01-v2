@@ -8,14 +8,30 @@ let state={title:'NEON COAST',tagline:'A SUNSET HEIST STORY',badge:'LAUNCH WEEK'
 stageScene(state);let photos=[],panelBoxes=[],selected=0,history=[],cursor=-1;
 function snapshot(){return JSON.stringify({state,photos:photos.map(p=>p.src)})}
 function record(){let value=snapshot();if(history[cursor]===value)return;history=history.slice(0,cursor+1);history.push(value);cursor++;sync()}
-function render(){panelBoxes=drawCover(canvas,state,photos);$('dimensions').textContent=state.size.join(' × ')}
+function render(){
+ panelBoxes=drawCover(canvas,state,photos);
+ if(selected>=panelBoxes.length)select(0);
+ $('dimensions').textContent=state.size.join(' × ');
+}
 function change(fn,save=true){fn(state);render();if(save)record()}
 function sync(){for(const id of ['title','tagline','badge','titleSize','spacing','color'])$(id).value=state[id];for(const id of ['vignette','texture'])$(id).checked=state[id];$('zoom').value=state.panels[selected].zoom;$('undo').disabled=cursor<=0;$('redo').disabled=cursor>=history.length-1;document.querySelectorAll('[data-layout]').forEach(b=>b.classList.toggle('active',b.dataset.layout===state.layout));document.querySelectorAll('[data-grade]').forEach(b=>b.classList.toggle('active',b.dataset.grade===state.grade));document.querySelectorAll('[data-size]').forEach(b=>b.classList.toggle('active',b.dataset.size===state.size.join(',')));$('heat').querySelectorAll('button').forEach((b,i)=>b.textContent=i<state.heat?'★':'☆')}
 function select(i){selected=i;$('panelLabel').textContent=`PANEL ${String(i+1).padStart(2,'0')} SELECTED`;$('zoom').value=state.panels[i].zoom}
 function image(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src})}
 function thumbs(){$('photos').replaceChildren();photos.forEach((p,i)=>{let el=document.createElement('img');el.src=p.src;el.title='Assign to selected panel';el.onclick=()=>change(s=>{s.panels[selected].photo=i});$('photos').append(el)})}
-async function restore(delta){if(cursor+delta<0||cursor+delta>=history.length)return;cursor+=delta;let old=JSON.parse(history[cursor]);state=old.state;photos=await Promise.all(old.photos.map(image));thumbs();sync();render()}
-async function samples(){photos=await Promise.all(['samples/boulevard.jpg','samples/pier.jpg'].map(image));change(s=>s.panels.forEach((p,i)=>Object.assign(p,{photo:i%2,zoom:1,x:0,y:0})));thumbs()}
+async function restore(delta){
+ if(cursor+delta<0||cursor+delta>=history.length)return;
+ cursor+=delta;
+ const old=JSON.parse(history[cursor]);
+ state=old.state;
+ photos=await Promise.all(old.photos.map(src=>photos.find(p=>p.src===src)??image(src)));
+ thumbs();render();sync();
+}
+async function samples(){
+ photos=await Promise.all(['samples/boulevard.jpg','samples/pier.jpg'].map(image));
+ const frames=[[0,.53,.13,1],[1,.35,.04,1],[0,.06,.18,1.5],[0,.12,.82,1.55],[1,.89,.38,1.48],[1,.10,.77,1.55],[0,.92,.12,1.35],[1,.92,.21,1.4],[0,.27,.88,1.65]];
+ change(s=>s.panels=frames.map(([photo,anchorX,anchorY,zoom])=>({photo,anchorX,anchorY,zoom,x:0,y:0})));
+ thumbs();
+}
 function toast(text){$('toast').textContent=text;$('toast').style.opacity=1;setTimeout(()=>$('toast').style.opacity=0,2400)}
 async function load(files,drop=false){const incoming=[...files].filter(f=>f.type.startsWith('image/')).slice(0,4);if(!incoming.length)return;try{const loaded=await Promise.all(incoming.map(f=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>image(reader.result).then(resolve,reject);reader.onerror=reject;reader.readAsDataURL(f)})));if(drop){const index=photos.length<4?photos.length:state.panels[selected].photo;photos[index]=loaded[0];state.panels[selected]={photo:index,zoom:1,x:0,y:0}}else{photos=loaded;state.panels.forEach((p,i)=>Object.assign(p,{photo:i%photos.length,zoom:1,x:0,y:0}))}thumbs();render();record();toast('Photos ready. Drag a panel to find your frame.')}catch{toast('That image could not be opened. Try another photo.')}}
 layouts.forEach(([id,icon,name])=>{let b=document.createElement('button');b.dataset.layout=id;b.innerHTML=`<b>${icon}</b>${name}`;b.onclick=()=>change(s=>s.layout=id);$('layouts').append(b)});

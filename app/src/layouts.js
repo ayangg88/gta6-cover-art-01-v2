@@ -7,6 +7,12 @@ export function arrange(kind,w,h){
  if(kind==='triptych')return tall?[0,1,2].map(i=>box(0,i/3,1,1/3)):[0,1,2].map(i=>box(i/3,0,1/3,1));
  if(kind==='duo')return [box(0,0,.56,1,{diagonal:1}),box(.44,0,.56,1,{diagonal:-1})];
  if(kind==='hero')return wide?[box(0,0,.68,1),...Array.from({length:3},(_,i)=>box(.68,i/3,.32,1/3))]:[box(0,0,1,.57),...Array.from({length:3},(_,i)=>tall?box(0,.57+i*.143,1,.143):box(i/3,.57,1/3,.43))];
- if(tall)return [box(0,0,1,.31),box(0,.31,.5,.2),box(.5,.31,.5,.2),box(0,.67,.5,.18),box(.5,.67,.5,.18),box(0,.85,1,.15)];
- return [box(0,0,.6,.66),box(.6,0,.4,.33),box(.6,.33,.4,.33),box(0,.66,.25,.34),box(.25,.66,.25,.34),box(.5,.66,.25,.34),box(.75,.66,.25,.34)];
+ const hero=wide?.40:.48;
+ const side=1-hero, split=side*.48;
+ return [
+  box(0,0,hero,.56),
+  box(hero,0,split,.29),box(hero+split,0,side-split,.29),
+  box(hero,.29,side-split,.27),box(hero+side-split,.29,split,.27),
+  ...Array.from({length:4},(_,i)=>box(i/4,.80,.25,.20)),
+ ];
 }
